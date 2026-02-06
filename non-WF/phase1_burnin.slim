@@ -10,7 +10,7 @@ defineConstant("Inv_start", 2e6);
 defineConstant("Inv_end", 13e6); // 11 MB inversion
 defineConstant("MU_total", 3e-9); // Mutation rate
 defineConstant("DFE_shape", 0.33); // gamma distribution shape
-defineConstant("DEF_mean_s", -0.001); // Mean selection coefficient
+defineConstant("DFE_mean_s", -0.001); // Mean selection coefficient
 defineConstant("H_dominance", 0.0); // Fully recessive
 defineConstant("Burnin_gen", 10 * K_ancestral); // Burn-in gen = 10N
 // Model setup
@@ -45,7 +45,7 @@ p1.addCrossed(mate1, mate2);
 
 // Death
 1:Burnin_gen early() { // Population size control
-p1.fitnessScaling = K_ANCESTRAL / p1.individualCount;
+p1.fitnessScaling = K_ancestral / p1.individualCount;
 }
 
 // Logging
@@ -60,7 +60,7 @@ catn("Gen: " + sim.cycle + " | Pop Size: " + count + " | Mean Fitness: " + fitne
 // Output
 Burnin_gen late() { 
 catn("Burn-in complete");
-sim.outputFull("burnin_state_K=" + K_ANCESTRAL + "_simID=" + simID + ".txt");
+sim.outputFull("burnin_state_K=" + K_ancestral + "_simID=" + simID + ".txt");
 sim.simulationFinished();
 }
 
