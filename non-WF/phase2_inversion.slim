@@ -28,5 +28,53 @@ m2.convertToSubstitution = F;
 // Inversion marker m3
 initializeMutationType("m3", 0.5, "f", 0.0);
 m3.convertToSubstitution = F;
-defineConstant("INV_MARKER_POS", integerDiv(INV_START + INV_END, 2));
- initializeGenomicElementType("g1",c(m1, m2),c(0.26, 0.74));
+defineConstant("Inv_marker", integerDiv(Inv_start + Inv_end, 2));
+initializeGenomicElementType("g1",c(m1, m2),c(0.26, 0.74));
+initializeGenomicElement(g1, 0, L-1); // Standard chromosome
+initializeMutationRate(MU_total);
+initializeRecombinationRate(Rec_rate);
+}
+
+// Load Burnin
+1 early() {
+sim.readFromPopulationFile("");
+setSeed(getSeed() + jobID);
+defineConstant("repID", getSeed());
+defineConstant("Start_gen", sim.cycle);
+catn("Phase 2: Replicate " + jobID);
+catn("Loaded burn-in state at generation " + START_GEN);
+
+// Reproduction
+reproduction() {
+mate1 = p1.sampleIndividuals(1);
+mate2 = p1.sampleIndividuals(1);
+p1.addCrossed(mate1, mate2);
+}
+
+// Death
+p1.fitnessScaling = K_ANCESTRAL / p1.individualCount;
+}
+
+// Introduce inversion at Start_gen
+1: late() {
+if (!exists("Start_gen")) return;
+if (sim.cycle == Start_gen) {
+p1.sampleIndividuals(1).haplosomes[0].addNewDrawnMutation(m3, INV_MARKER_POS);
+inv_freq = sum(p1.individuals.haplosomes.countOfMutationsOfType(m3)) / (2.0 * p1.individualCount);
+catn("Generation " + sim.cycle + ": Inversion introduced. Frequency: " + inv_freq);
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
