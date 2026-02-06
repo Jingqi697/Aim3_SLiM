@@ -37,8 +37,7 @@ defineConstant("simID", getSeed());
 }
 
 2:Burnin_gen early() {
-if (sim.cycle % 1000 == 0) {
-// Fitness corresponds to previous generation
+if (sim.cycle > 2 & sim.cycle % 1000 == 0) {
 meanFit = mean(p1.cachedFitness(NULL));
 catn("Gen: " + (sim.cycle - 1) +
 " | mean fitness: " + meanFit);
