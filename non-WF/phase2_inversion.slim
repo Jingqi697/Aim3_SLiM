@@ -1,0 +1,32 @@
+// Phase 2: Introduce inversion from burn-in state
+// Run 1000 independent replicates to capture cases where inversion persists
+
+initialize() {
+defineConstant("K_ancestral", 5000);
+defineConstant("L", 23e6);
+defineConstant("Rec_rate", 2.4e-8);
+defineConstant("Inv_start", 2e6);
+defineConstant("Inv_end", 13e6);
+defineConstant("MU_total",3e-9);
+defineConstant("DFE_shape", 0.33);
+defineConstant("DFE_mean_s", -0.001);
+defeinConstant("H_dominance", 0.0);
+defineConstant("Burnin_gen", 10 * K_ancestral);
+defineConstant(Inv_burnin_gen", 10 * K_ancestral);
+
+if (!exists("jobID")) defineConstant("jobID", 1);
+defineConstant("LOG_interval", 1000);
+
+// Model setup
+initializeSLiMModelType("nonWF");
+// Neutral mutations
+initializeMutationType("m1", 0.5, "f", 0.0);
+m1.convertToSubstitution = F;
+// Deleterious mutation m2
+initializeMutationType("m2", H_DOMINANCE, "g", DFE_MEAN_S, DFE_SHAPE);
+m2.convertToSubstitution = F;
+// Inversion marker m3
+initializeMutationType("m3", 0.5, "f", 0.0);
+m3.convertToSubstitution = F;
+defineConstant("INV_MARKER_POS", integerDiv(INV_START + INV_END, 2));
+ initializeGenomicElementType("g1",c(m1, m2),c(0.26, 0.74));
