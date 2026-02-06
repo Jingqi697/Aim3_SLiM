@@ -54,7 +54,7 @@ if (sim.cycle % 1000 == 0) {
 // Mean fitness (before density scaling)
 meanFit = mean(p1.cachedFitness(NULL));
 // Total deleterious mutation count 
-total_m2 = sum(p1.genomes.countOfMutationsOfType(m2));
+total_m2 = sum(p1.individuals.genomes.countOfMutationsOfType(m2));
 // Homozygous deleterious burden
 hom_m2 = 0;
 for (ind in p1.individuals) {
