@@ -50,10 +50,23 @@ p1.fitnessScaling = K_ancestral / p1.individualCount;
 
 // Logging
 1:Burnin_gen late() {
-if (sim.cycle % 1000 == 0) { // Make log for every 1000 generation
-count = p1.individualCount;
-fitness = mean(p1.cachedFitness(NULL));
-catn("Gen: " + sim.cycle + " | Pop Size: " + count + " | Mean Fitness: " + fitness); // Status update
+if (sim.cycle % 1000 == 0) {
+// Mean fitness (before density scaling)
+meanFit = mean(p1.cachedFitness(NULL));
+// Total deleterious mutation count 
+total_m2 = sum(p1.genomes.countOfMutationsOfType(m2));
+// Homozygous deleterious burden
+hom_m2 = 0;
+for (ind in p1.individuals) {
+hom_m2 = hom_m2 +
+sum(ind.genome1.countOfMutationsOfType(m2) &
+ind.genome2.countOfMutationsOfType(m2));
+}
+catn("Gen: " + sim.cycle +
+" | N: " + p1.individualCount +
+" | MeanFit: " + meanFit +
+" | m2 copies: " + total_m2 +
+" | homozygous m2: " + hom_m2);
 }
 }
 
