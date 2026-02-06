@@ -36,11 +36,18 @@ sim.addSubpop("p1", K_ancestral); // Ancestral population p1
 defineConstant("simID", getSeed());
 }
 
+2:Burnin_gen early() {
+if (sim.cycle % 1000 == 0) {
+// Fitness corresponds to previous generation
+meanFit = mean(p1.cachedFitness(NULL));
+catn("Gen: " + (sim.cycle - 1) +
+" | mean fitness: " + meanFit);
+}
+}
+
 // Logging
 1:Burnin_gen late() {
 if (sim.cycle % 1000 == 0) {
-// Mean fitness (before density scaling)
-meanFit = mean(p1.individuals.fitness);
 // Total deleterious mutation count 
 total_m2 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m2));
 // Homozygous deleterious burden
@@ -52,7 +59,6 @@ ind.haploidGenome2.countOfMutationsOfType(m2));
 }
 catn("Gen: " + sim.cycle +
 " | N: " + p1.individualCount +
-" | MeanFit: " + meanFit +
 " | m2 copies: " + total_m2 +
 " | homozygous m2: " + hom_m2);
 }
