@@ -33,7 +33,7 @@ initializeRecombinationRate(Rec_rate);
 }
 
 // Load Burnin
-1 early() {
+1 late() {
 sim.readFromPopulationFile("burnin_state_K=5000_simID=7165645623120792666.txt");
 setSeed(getSeed() + jobID); // Random jobs 
 defineConstant("repID", getSeed());
