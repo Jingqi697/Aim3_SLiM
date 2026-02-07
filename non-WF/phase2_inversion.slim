@@ -6,43 +6,40 @@ defineConstant("K_ancestral", 5000);
 defineConstant("L", 23e6);
 defineConstant("Rec_rate", 2.4e-8);
 defineConstant("Inv_start", 2e6);
+defineConstant("Inv_center_start", 5.5e6);
+defineConstant("Inv_center_end", 9.5e6); // Inversion 4MB center
 defineConstant("Inv_end", 13e6);
-defineConstant("MU_total",3e-9);
+defineConstant("Inv_marker", 3e6); // Marker placed at 3MB
+defineConstant("MU_total", 3e-9);
 defineConstant("DFE_shape", 0.33);
 defineConstant("DFE_mean_s", -0.001);
-defeinConstant("H_dominance", 0.0);
+defineConstant("H_dominance", 0.0);
 defineConstant("Burnin_gen", 10 * K_ancestral);
-defineConstant(Inv_burnin_gen", 10 * K_ancestral);
-
+defineConstant("Inv_burnin_gen", 10 * K_ancestral);
 if (!exists("jobID")) defineConstant("jobID", 1);
-defineConstant("LOG_interval", 1000);
-
-// Model setup
+defineConstant("LOG_interval", 100); // Log every 100 generation
 initializeSLiMModelType("nonWF");
-// Neutral mutations
+// Mutations
 initializeMutationType("m1", 0.5, "f", 0.0);
 m1.convertToSubstitution = F;
-// Deleterious mutation m2
-initializeMutationType("m2", H_DOMINANCE, "g", DFE_MEAN_S, DFE_SHAPE);
+initializeMutationType("m2", H_dominance, "g", DFE_mean_s, DFE_shape);
 m2.convertToSubstitution = F;
-// Inversion marker m3
 initializeMutationType("m3", 0.5, "f", 0.0);
 m3.convertToSubstitution = F;
-defineConstant("Inv_marker", integerDiv(Inv_start + Inv_end, 2));
-initializeGenomicElementType("g1",c(m1, m2),c(0.26, 0.74));
-initializeGenomicElement(g1, 0, L-1); // Standard chromosome
+initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+initializeGenomicElement(g1, 0, L - 1);
 initializeMutationRate(MU_total);
 initializeRecombinationRate(Rec_rate);
 }
 
 // Load Burnin
 1 early() {
-sim.readFromPopulationFile("");
-setSeed(getSeed() + jobID);
+sim.readFromPopulationFile("burnin_state_K=5000_simID=7165645623120792666.txt");
+setSeed(getSeed() + jobID); // Random jobs 
 defineConstant("repID", getSeed());
 defineConstant("Start_gen", sim.cycle);
 catn("Phase 2: Replicate " + jobID);
-catn("Loaded burn-in state at generation " + START_GEN);
+}
 
 // Reproduction
 reproduction() {
@@ -52,18 +49,162 @@ p1.addCrossed(mate1, mate2);
 }
 
 // Death
-p1.fitnessScaling = K_ANCESTRAL / p1.individualCount;
+(Burnin_gen + 1):(Burnin_gen + Inv_burnin_gen) early() {
+p1.fitnessScaling = min(1.0, K_ancestral / p1.individualCount);
 }
 
-// Introduce inversion at Start_gen
-1: late() {
-if (!exists("Start_gen")) return;
-if (sim.cycle == Start_gen) {
-p1.sampleIndividuals(1).haplosomes[0].addNewDrawnMutation(m3, INV_MARKER_POS);
+// Introduce inversion
+(Burnin_gen + 1) late() {
+p1.sampleIndividuals(1).haplosomes[0].addNewDrawnMutation(m3, Inv_marker);
 inv_freq = sum(p1.individuals.haplosomes.countOfMutationsOfType(m3)) / (2.0 * p1.individualCount);
-catn("Generation " + sim.cycle + ": Inversion introduced. Frequency: " + inv_freq);
+catn("Generation " + sim.cycle + ": Inversion introduced. Frequency = " + inv_freq);
+}
+
+// Recombination
+recombination() {
+// If have same arrangements, normal recombination
+if (haplosome1.containsMarkerMutation(m3, Inv_marker) == haplosome2.containsMarkerMutation(m3, Inv_marker))
+return F;
+// 
+inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+inCenter = (breakpoints > Inv_center_start) & (breakpoints < Inv_center_end);
+Rec_inCenter = breakpoints[inCenter];
+// If no cross over within inversion, normal recombination
+if (!any(inInv))
+return F;
+// If crossover happen within inversions but outside center, supressed recombination
+if (any(inInv & !inCenter)) {
+breakpoints = breakpoints[!inInv];
+return T;
+}
+// If odd numbers of crossovers happen within inversion center, supressed recombination
+if (size(Rec_inCenter) % 2 == 1) {
+breakpoints = breakpoints[!inInv];
+return T;
+} 
+// If even numbers of crossovers happen with inversion center, normal recombination
+return F;
+}
+
+// Tracking
+
+(Burnin_gen + 1):(Burnin_gen + Inv_burnin_gen) late() {
+genSinceIntro = sim.cycle - (Burnin_gen + 1); // Number of generations since inversion introduction
+inv_freq = sum(p1.individuals.haplosomes.countOfMutationsOfType(m3)) / (2.0 * p1.individualCount);
+// Inversion lost, simulation finish
+if (inv_freq == 0.0) {
+catn("Generation " + gensSinceIntro +
+": Inversion LOST (rep " + jobID + ")");
+sim.simulationFinished();
+}
+// Inversion fixed, simulation finish
+if (inv_freq >= 0.99) {
+catn("Generation " + gensSinceIntro +
+": Inversion FIXED (rep " + jobID + ")");
+sim.simulationFinished();
+}
+// Log every 100 generations
+if(genSinceIntro >= 1000 & genSinceIntro % LOG_interval == 0) {
+// Log inversion genotypes
+numSTD = 0;
+numHET = 0;
+numINV = 0;
+for (ind in p1.individuals) {
+invCopies = sum(ind.haplosomes.countOfMutationsOfType(m3));
+if (invCopies == 0)
+numSTD = numSTD + 1;
+else if (invCopies == 1)
+numHET = numHET + 1;
+else
+numINV = numINV + 1;
+}
+catn("Gen " + gensSinceIntro +
+" | Job " + jobID +
+" | Inv freq: " + inv_freq +
+" | STD: " + numSTD +
+" HET: " + numHET +
+" INV: " + numINV);
+}
+// At gen 100000, save if polymorphism
+if (gensSinceIntro == Inv_burnin_gen) {
+if (inv_freq > 0.0 & inv_freq < 0.99) {
+outfile = "inversion_polymorphic_job=" + jobID +
+"_rep=" + repID +
+"_freq=" + inv_freq + ".txt";
+sim.outputFull(outfile);
+catn("SUCCESS: Saved " + outfile);
+}
+else {
+catn("Replicate " + jobID +
+" did not maintain polymorphism (freq=" +
+inv_freq + ")");
+}
+sim.simulationFinished();
 }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
