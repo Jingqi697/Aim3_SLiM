@@ -93,13 +93,13 @@ genSinceIntro = sim.cycle - (Burnin_gen + 1); // Number of generations since inv
 inv_freq = sum(p1.individuals.haplosomes.countOfMutationsOfType(m3)) / (2.0 * p1.individualCount);
 // Inversion lost, simulation finish
 if (inv_freq == 0.0) {
-catn("Generation " + gensSinceIntro +
+catn("Generation " + genSinceIntro +
 ": Inversion LOST (rep " + jobID + ")");
 sim.simulationFinished();
 }
 // Inversion fixed, simulation finish
 if (inv_freq >= 0.99) {
-catn("Generation " + gensSinceIntro +
+catn("Generation " + genSinceIntro +
 ": Inversion FIXED (rep " + jobID + ")");
 sim.simulationFinished();
 }
@@ -118,7 +118,7 @@ numHET = numHET + 1;
 else
 numINV = numINV + 1;
 }
-catn("Gen " + gensSinceIntro +
+catn("Gen " + genSinceIntro +
 " | Job " + jobID +
 " | Inv freq: " + inv_freq +
 " | STD: " + numSTD +
@@ -126,22 +126,15 @@ catn("Gen " + gensSinceIntro +
 " INV: " + numINV);
 }
 // At gen 100000, save if polymorphism
-if (gensSinceIntro == Inv_burnin_gen) {
-if (inv_freq > 0.0 & inv_freq < 0.99) {
+if (genSinceIntro == Inv_burnin_gen) {
 outfile = "inversion_polymorphic_job=" + jobID +
 "_rep=" + repID +
 "_freq=" + inv_freq + ".txt";
 sim.outputFull(outfile);
 catn("SUCCESS: Saved " + outfile);
 }
-else {
-catn("Replicate " + jobID +
-" did not maintain polymorphism (freq=" +
-inv_freq + ")");
 }
-sim.simulationFinished();
-}
-}
+
 
 
 
