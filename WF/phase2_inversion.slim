@@ -114,11 +114,12 @@ catn("Gen " + genSinceIntro +
 " INV: " + numINV);
 }
 // At gen 100000, save if polymorphism
-if (genSinceIntro == Inv_burnin_gen) {
+if (genSinceIntro == (Inv_burnin_gen - 1)) {
 outfile = "inversion_polymorphic_job=" + jobID +
 "_rep=" + repID +
 "_freq=" + inv_freq + ".txt";
 sim.outputFull(outfile);
 catn("SUCCESS: Saved " + outfile);
+sim.simulationFinished();
 }
 }
