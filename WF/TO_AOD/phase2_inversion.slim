@@ -18,7 +18,7 @@ defineConstant("Burnin_gen", 10 * K_ancestral);
 defineConstant("Inv_burnin_gen", 10 * K_ancestral);
 if (!exists("jobID")) defineConstant("jobID", 1);
 defineConstant("LOG_interval", 100); // Log every 100 generation
-initializeSLiMModelType("nonWF");
+initializeSLiMModelType("WF");
 // Mutations
 initializeMutationType("m1", 0.5, "f", 0.0);
 m1.convertToSubstitution = F;
@@ -33,24 +33,12 @@ initializeRecombinationRate(Rec_rate);
 }
 
 // Load Burnin
-1 early() {
-sim.readFromPopulationFile("burnin_state_K=5000_simID=2788998670010271651.txt");
+1 late() {
+sim.readFromPopulationFile("burnin_state_K=5000_simID=7165645623120792666.txt");
 setSeed(getSeed() + jobID); // Random jobs 
 defineConstant("repID", getSeed());
 defineConstant("Start_gen", sim.cycle);
 catn("Phase 2: Replicate " + jobID);
-}
-
-// Reproduction
-reproduction() {
-mate1 = p1.sampleIndividuals(1);
-mate2 = p1.sampleIndividuals(1);
-p1.addCrossed(mate1, mate2);
-}
-
-// Death
-(Burnin_gen + 1):(Burnin_gen + Inv_burnin_gen) early() {
-p1.fitnessScaling = min(1.0, K_ancestral / p1.individualCount);
 }
 
 // Introduce inversion
