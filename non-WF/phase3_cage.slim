@@ -116,62 +116,41 @@ sim.simulationFinished();
 
 
 late() {
-    gen = sim.cycle;
+if (sim.cycle % LOG_interval != 0)
+return;
+// write header 
+if (!fileExists(OUTPUT_FILE))
+writeFile(OUTPUT_FILE, "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n");
 
-    if (gen % LOG_interval != 0)
-        return;
-
-    // Write header once
-    if (gen == 1) {
-        writeFile(
-            OUTPUT_FILE,
-            "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n",
-            append = F
-        );
-    }
-
-    function writePop(pop, label) {
-        n = pop.individualCount;
-
-        if (n == 0) {
-            writeFile(
-                OUTPUT_FILE,
-                gen + "," + label + ",0,NA,NA,NA,NA\n",
-                append = T
-            );
-            return;
-        }
-
-        counts = pop.individuals.countOfMutationsOfType(m3);
-
-        f_std = sum(counts == 0) / n;
-        f_het = sum(counts == 1) / n;
-        f_inv = sum(counts == 2) / n;
-        freq  = sum(counts) / (2.0 * n);
-
-        writeFile(
-            OUTPUT_FILE,
-            gen + "," + label + "," + n + "," +
-            freq + "," + f_std + "," + f_het + "," + f_inv + "\n",
-            append = T
-        );
-    }
-
-    writePop(p2, "LF");
-    writePop(p3, "MF");
+n = p2.individualCount;
+if (n > 0) {
+c = p2.individuals.countOfMutationsOfType(m3);
+writeFile(OUTPUT_FILE,
+sim.cycle + ",LF," + n + "," +
+sum(c)/(2.0*n) + "," +
+sum(c==0)/n + "," +
+sum(c==1)/n + "," +
+sum(c==2)/n + "\n",
+append=T);
+} else {
+writeFile(OUTPUT_FILE,
+sim.cycle + ",LF,0,NA,NA,NA,NA\n",
+append=T);
 }
 
-
-    catn("Gen:" + gen + " | " + logPop(p2,"LF") + " | " + logPop(p3,"MF"));
+n = p3.individualCount;
+if (n > 0) {
+c = p3.individuals.countOfMutationsOfType(m3);
+writeFile(OUTPUT_FILE,
+sim.cycle + ",MF," + n + "," +
+sum(c)/(2.0*n) + "," +
+sum(c==0)/n + "," +
+sum(c==1)/n + "," +
+sum(c==2)/n + "\n",
+append=T);
+} else {
+writeFile(OUTPUT_FILE,
+sim.cycle + ",MF,0,NA,NA,NA,NA\n",
+append=T);
 }
-
-
-
-
-
-
-
-
-
-
-
+}
