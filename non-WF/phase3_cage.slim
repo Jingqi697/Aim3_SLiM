@@ -38,7 +38,7 @@ initializeRecombinationRate(Rec_rate);
 }
 
 1 early() {
-sim.readFromPopulationFile(BURN_IN_FILE); // Read burnin
+sim.readFromPopulationFile("inversion_polymorphic_job=285_rep=7789951208438124276_freq=0.0895154.txt"); // Read burnin
 defineConstant("START_GEN", sim.cycle);
 sim.addSubpop("p2", 0); // LF Cage 
 sim.addSubpop("p3", 0); // MF Cage 
