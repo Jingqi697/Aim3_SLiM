@@ -42,8 +42,8 @@ initializeRecombinationRate(Rec_rate);
 1 early(){
 sim.readFromPopulationFile(""); // Read from burnin
 inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1]; // Heterozygous population p1, have 1 m3 marker
-defineConstant("LF_founders", sample(inds_HET, N_low));
-defineConstant("MF_founders", sample(inds_HET, N_multi));
+LF_founders = sample(inds_HET, N_low);
+MF_founders = sample(inds_HET, N_multi);
 sim.addSubpop("p2", 0);
 sim.addSubpop("p3", 0);
 sim.killIndividuals(p1.individuals);
@@ -112,14 +112,16 @@ return F;
 }
 
 early() {
-gen = sim.cycle;
 for (pop in sim.subpopulations) {
-// Randomly choose survivors
-keep = sample(pop.individuals, min(K_cage, pop.individualCount));
-// Kill everyone else
-sim.killIndividuals(pop.individuals[!pop.individuals.isIn(keep)]);
+if (pop.individualCount <= K_cage)
+            continue;
+keep = sample(pop.individuals, K_cage);
+for (ind in pop.individuals) {
+if (!any(ind == keep))
+sim.killIndividuals(ind);
 }
-if (gen > Cage_end)
+}
+if (sim.cycle > Cage_end)
 sim.simulationFinished();
 }
 
@@ -130,12 +132,13 @@ return;
 // write header 
 if (!fileExists(OUTPUT_FILE))
 writeFile(OUTPUT_FILE, "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n");
+gen_real = sim.cycle - Cage_start;
 
 n = p2.individualCount;
 if (n > 0) {
 c = p2.individuals.countOfMutationsOfType(m3);
 writeFile(OUTPUT_FILE,
-sim.cycle + ",LF," + n + "," +
+gen_real + ",LF," + n + "," +
 sum(c)/(2.0*n) + "," +
 sum(c==0)/n + "," +
 sum(c==1)/n + "," +
@@ -143,7 +146,7 @@ sum(c==2)/n + "\n",
 append=T);
 } else {
 writeFile(OUTPUT_FILE,
-sim.cycle + ",LF,0,NA,NA,NA,NA\n",
+gen_real + ",LF,0,NA,NA,NA,NA\n",
 append=T);
 }
 
@@ -151,7 +154,7 @@ n = p3.individualCount;
 if (n > 0) {
 c = p3.individuals.countOfMutationsOfType(m3);
 writeFile(OUTPUT_FILE,
-sim.cycle + ",MF," + n + "," +
+gen_real + ",MF," + n + "," +
 sum(c)/(2.0*n) + "," +
 sum(c==0)/n + "," +
 sum(c==1)/n + "," +
@@ -159,7 +162,7 @@ sum(c==2)/n + "\n",
 append=T);
 } else {
 writeFile(OUTPUT_FILE,
-sim.cycle + ",MF,0,NA,NA,NA,NA\n",
+gen_real + ",MF,0,NA,NA,NA,NA\n",
 append=T);
 }
 }
