@@ -1,0 +1,166 @@
+////////////////////////////////////////////////////////////
+// Phase 3: WF population cage with inversion tracking
+////////////////////////////////////////////////////////////
+
+initialize() {
+
+    // ---- paths & IDs ----
+    defineConstant("BASE_DIR", "/Users/jingqi/Desktop/");
+    if (!exists("jobID")) defineConstant("jobID", 1);
+    defineConstant("REP_ID", jobID);
+    defineConstant("OUTPUT_FILE",
+        BASE_DIR + "results/true_overdominance_rep" + REP_ID + ".csv");
+
+    // ---- cage parameters ----
+    defineConstant("K_cage", 500);
+    defineConstant("Cage_gen", 100);
+    defineConstant("N_low", 4);
+    defineConstant("N_multi", 20);
+
+    // ---- genome ----
+    defineConstant("L", 23e6);
+    defineConstant("Rec_rate", 2.4e-8);
+
+    // ---- inversion ----
+    defineConstant("Inv_start", 2e6);
+    defineConstant("Inv_center_start", 5.5e6);
+    defineConstant("Inv_center_end", 9.5e6);
+    defineConstant("Inv_end", 13e6);
+    defineConstant("Inv_marker", 3e6);
+
+    defineConstant("LOG_interval", 1);
+
+    // ---- burn-in ----
+    defineConstant("BURN_IN_FILE",
+        "inversion_polymorphic_job=379_rep=8591182220835234285_freq=0.0803.txt");
+
+    initializeSLiMModelType("WF");
+
+    // ---- mutations ----
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeMutationType("m2", 0.0, "g", -0.001, 0.33);
+    initializeMutationType("m3", 0.5, "f", 0.0);   // inversion marker
+
+    m1.convertToSubstitution = F;
+    m2.convertToSubstitution = F;
+    m3.convertToSubstitution = F;
+
+    initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+    initializeGenomicElement(g1, 0, L - 1);
+
+    initializeMutationRate(0.0);
+    initializeRecombinationRate(Rec_rate);
+}
+
+////////////////////////////////////////////////////////////
+// GEN 1: load burn-in & seed cages
+////////////////////////////////////////////////////////////
+
+1 early() {
+
+    sim.readFromPopulationFile(BURN_IN_FILE);
+
+    // identify heterozygotes
+    hets = p1.individuals[
+        p1.individuals.countOfMutationsOfType(m3) == 1
+    ];
+
+    if (size(hets) < (N_low + N_multi))
+        stop("Not enough heterozygotes");
+
+    // ---- split founders directly from burn-in ----
+    sim.addSubpopSplit("p2", N_low, p1);    // LF founders
+    sim.addSubpopSplit("p3", N_multi, p1);  // MF founders
+
+    // ---- expand founders into cages ----
+    sim.addSubpopSplit("p4", K_cage, p2);   // LF cage
+    sim.addSubpopSplit("p5", K_cage, p3);   // MF cage
+
+    // ---- cleanup ----
+    p1.setSubpopulationSize(0);
+    p2.setSubpopulationSize(0);
+    p3.setSubpopulationSize(0);
+
+    defineConstant("START_GEN", sim.cycle);
+}
+
+////////////////////////////////////////////////////////////
+// RECOMBINATION WITH INVERSION SUPPRESSION
+////////////////////////////////////////////////////////////
+
+recombination() {
+
+    // same arrangement → normal recombination
+    if (haplosome1.containsMarkerMutation(m3, Inv_marker) ==
+        haplosome2.containsMarkerMutation(m3, Inv_marker))
+        return F;
+
+    inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+    inCenter = (breakpoints > Inv_center_start) &
+               (breakpoints < Inv_center_end);
+
+    if (!any(inInv))
+        return F;
+
+    // crossover in inverted region but outside center → suppressed
+    if (any(inInv & !inCenter)) {
+        breakpoints = breakpoints[!inInv];
+        return T;
+    }
+
+    // odd number in center → suppressed
+    if (sum(inCenter) % 2 == 1) {
+        breakpoints = breakpoints[!inInv];
+        return T;
+    }
+
+    return F;
+}
+
+////////////////////////////////////////////////////////////
+// LOGGING
+////////////////////////////////////////////////////////////
+
+(START_GEN):(START_GEN + Cage_gen) late() {
+
+    gen_real = sim.cycle - START_GEN;
+
+    if (gen_real % LOG_interval != 0)
+        return;
+
+    if (!fileExists(OUTPUT_FILE))
+        writeFile(OUTPUT_FILE,
+            "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n");
+
+    // ---- LF cage (p4) ----
+    n = p4.individualCount;
+    c = p4.individuals.countOfMutationsOfType(m3);
+
+    writeFile(OUTPUT_FILE,
+        gen_real + ",LF," + n + "," +
+        sum(c)/(2.0*n) + "," +
+        sum(c==0)/n + "," +
+        sum(c==1)/n + "," +
+        sum(c==2)/n + "\n",
+        append=T);
+
+    // ---- MF cage (p5) ----
+    n = p5.individualCount;
+    c = p5.individuals.countOfMutationsOfType(m3);
+
+    writeFile(OUTPUT_FILE,
+        gen_real + ",MF," + n + "," +
+        sum(c)/(2.0*n) + "," +
+        sum(c==0)/n + "," +
+        sum(c==1)/n + "," +
+        sum(c==2)/n + "\n",
+        append=T);
+}
+
+////////////////////////////////////////////////////////////
+// STOP
+////////////////////////////////////////////////////////////
+
+(START_GEN + Cage_gen) late() {
+    sim.simulationFinished();
+}
