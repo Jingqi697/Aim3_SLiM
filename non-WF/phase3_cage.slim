@@ -113,28 +113,25 @@ return F;
 
 (Cage_start + 1):(Cage_end) early() {
     for (pop in sim.subpopulations) {
-        n_current = pop.individualCount;
-        
-        // Only sample if there are actually individuals left
-        if (n_current > 0) {
-            // Determine how many to keep: K_cage or the whole pop if it's smaller than K_cage
-            n_to_keep = min(n_current, K_cage);
-            keep = sample(pop.individuals, n_to_keep);
-            
-            // Efficiently kill individuals not in the 'keep' list
-            pop.subsetIndividuals(keep);
+
+        n = pop.individualCount;
+
+        // Only regulate if population is non-empty
+        if (n > 0) {
+            if (n > K_cage) {
+                keep = sample(pop.individuals, K_cage);
+                pop.subsetIndividuals(keep);
+            }
         } else {
-            catn("Generation " + sim.cycle + ": Population " + pop.id + " has gone extinct.");
+            catn("Generation " + sim.cycle + ": Population " + pop.id + " extinct.");
         }
     }
 
-    if (sim.cycle >= Cage_end)
+    if (sim.cycle == Cage_end)
         sim.simulationFinished();
 }
 
 
-
-(Cage_start + 1):(Cage_end) late() {
 if (sim.cycle % LOG_interval != 0)
 return;
 // write header 
