@@ -1,0 +1,153 @@
+////////////////////////////////////////////////////////////
+// DIAGNOSTIC: nonWF takeMigrants + cloning verification
+////////////////////////////////////////////////////////////
+
+initialize() {
+
+    // ---- Phase 3 core parameters ----
+    defineConstant("BURN_IN_FILE",
+        "inversion_polymorphic_job=285_rep=7789951208438124276_freq=0.0895154.txt");
+
+    defineConstant("K_cage", 500);
+    defineConstant("N_low", 4);
+    defineConstant("N_multi", 20);
+
+    defineConstant("L", 23e6);
+    defineConstant("Rec_rate", 2.4e-8);
+
+    initializeSLiMModelType("nonWF");
+
+    // ---- Mutations ----
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeMutationType("m2", 0.0, "g", -0.001, 0.33);
+    initializeMutationType("m3", 0.5, "f", 0.0);   // inversion marker
+
+    m1.convertToSubstitution = F;
+    m2.convertToSubstitution = F;
+    m3.convertToSubstitution = F;
+
+    initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+    initializeGenomicElement(g1, 0, L - 1);
+
+    initializeMutationRate(0.0);
+    initializeRecombinationRate(Rec_rate);
+}
+
+////////////////////////////////////////////////////////////
+// GEN 1: load burn-in and move founders
+////////////////////////////////////////////////////////////
+
+1 early() {
+
+    catn("\n=== GEN 1 EARLY ===");
+
+    sim.readFromPopulationFile(BURN_IN_FILE);
+    p1.individuals.age = 0;
+
+    catn("Burn-in loaded");
+    catn("p1 N = " + p1.individualCount);
+
+    // ---- identify heterozygotes ----
+    inds_HET = p1.individuals[
+        p1.individuals.countOfMutationsOfType(m3) == 1
+    ];
+
+    catn("Heterozygotes in p1 = " + size(inds_HET));
+
+    if (size(inds_HET) < (N_low + N_multi))
+        stop("Not enough heterozygotes in burn-in");
+
+    // ---- create empty cages ----
+    sim.addSubpop("p2", 0);   // LF cage
+    sim.addSubpop("p3", 0);   // MF cage
+
+    // ---- sample founders WITHOUT overlap ----
+    LF = sample(inds_HET, N_low);
+    remaining = inds_HET[match(inds_HET, LF) == -1];
+
+    MF = sample(remaining, N_multi);
+
+    // ---- move founders ----
+    p2.takeMigrants(LF);
+    p3.takeMigrants(MF);
+
+    catn("After takeMigrants:");
+    catn("  p2 N = " + p2.individualCount);
+    catn("  p3 N = " + p3.individualCount);
+
+    // ---- verify founders are heterozygotes ----
+    c2 = p2.individuals.countOfMutationsOfType(m3);
+    c3 = p3.individuals.countOfMutationsOfType(m3);
+
+    catn("  p2 het fraction = " + sum(c2 == 1) / p2.individualCount);
+    catn("  p3 het fraction = " + sum(c3 == 1) / p3.individualCount);
+
+    // ---- freeze survival for founding generation ----
+    p2.fitnessScaling = 1.0;
+    p3.fitnessScaling = 1.0;
+
+    // ---- remove burn-in ----
+    sim.killIndividuals(p1.individuals);
+    p1.removeSubpopulation();
+
+    defineConstant("START_GEN", sim.cycle);
+}
+
+////////////////////////////////////////////////////////////
+// REPRODUCTION: clone founders ONCE
+////////////////////////////////////////////////////////////
+
+reproduction(p2) {
+
+    if (sim.cycle != START_GEN + 1)
+        return;
+
+    catn("\n--- REPRODUCTION p2 ---");
+    catn("Initial p2 N = " + p2.individualCount);
+
+    perLine = asInteger(K_cage / p2.individualCount);
+
+    for (ind in p2.individuals)
+        for (i in 1:perLine)
+            p2.addCloned(ind);
+
+    self.active = 0;   // CRITICAL: prevent repeated cloning
+}
+
+reproduction(p3) {
+
+    if (sim.cycle != START_GEN + 1)
+        return;
+
+    catn("\n--- REPRODUCTION p3 ---");
+    catn("Initial p3 N = " + p3.individualCount);
+
+    perLine = asInteger(K_cage / p3.individualCount);
+
+    for (ind in p3.individuals)
+        for (i in 1:perLine)
+            p3.addCloned(ind);
+
+    self.active = 0;   // CRITICAL
+}
+
+////////////////////////////////////////////////////////////
+// POST-CLONING CHECK
+////////////////////////////////////////////////////////////
+
+(START_GEN + 2) late() {
+
+    catn("\n=== POST-CLONING CHECK ===");
+
+    catn("p2 N = " + p2.individualCount);
+    catn("p3 N = " + p3.individualCount);
+
+    c2 = p2.individuals.countOfMutationsOfType(m3);
+    c3 = p3.individuals.countOfMutationsOfType(m3);
+
+    catn("p2 inversion freq = " + sum(c2) / (2.0 * p2.individualCount));
+    catn("p3 inversion freq = " + sum(c3) / (2.0 * p3.individualCount));
+
+    catn("\n=== END DIAGNOSTIC ===");
+    sim.simulationFinished();
+}
