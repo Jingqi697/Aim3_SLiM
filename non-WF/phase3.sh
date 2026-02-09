@@ -6,11 +6,11 @@
 #SBATCH --mem=24G
 #SBATCH -p standard
 #SBATCH --account=berglandlab
-#SBATCH --output=/scratch/cqh6wn/AOD_slim/True_overdominance/logs/TO.%A_%a.out
-#SBATCH --error=/scratch/cqh6wn/AOD_slim/True_overdominance/logs/TO.%A_%a.err
+#SBATCH --output=/scratch/cqh6wn/Aim3_SLiM/nonWF/3Phase/logs/phase2.%A_%a.out
+#SBATCH --error=/scratch/cqh6wn/Aim3_SLiM/nonWF/3Phase/logs/phase2.%A_%a.out
 #SBATCH --array=1-1000
 
 module purge
 module load slim
 
-slim -d jobID=$SLURM_ARRAY_TASK_ID /scratch/cqh6wn/AOD_slim/True_overdominance/true_overdominance.slim
+slim -d jobID=$SLURM_ARRAY_TASK_ID /scratch/cqh6wn/Aim3_SLiM/nonWF/3Phase/phase3_cage.slim
