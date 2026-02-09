@@ -1,6 +1,12 @@
 // Phase 3: population cage simulation
 
 initialize() {
+
+defineConstant("BASE_DIR", "/scratch/cqh6wn/Aim3_SLiM/nonWF/3Phase/");
+if (!exists("jobID")) defineConstant("jobID", 1);
+defineConstant("REP_ID", jobID);
+defineConstant("OUTPUT_FILE", BASE_DIR + "results/true_overdominance_rep" + REP_ID + ".csv");
+
 defineConstant("K_cage", 500); // Population cage size
 defineConstant("Cage_gen", 100); // Population cage generation
 defineConstant("N_low", 4); // low founder -- 4
@@ -16,9 +22,7 @@ defineConstant("MU_total", 3e-9);
 defineConstant("DFE_shape", 0.33);
 defineConstant("DFE_mean_s", -0.001);
 defineConstant("H_dominance", 0.0);
-// Define Replicates
-if (!exists("REP_ID")) defineConstant("REP_ID", 1);
-setSeed(getSeed() + REP_ID);
+
 defineConstant("LOG_interval", 1); // Log every generation
 initializeSLiMModelType("nonWF");
 // Mutations
@@ -111,33 +115,52 @@ if (gen > Cage_end)
 sim.simulationFinished();
 }
 
-late()
-{
+late() {
     gen = sim.cycle;
 
     if (gen % LOG_interval != 0)
         return;
 
-    function logPop(pop, label)
-    {
+    // Write header once
+    if (gen == 1) {
+        writeFile(
+            OUTPUT_FILE,
+            "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n",
+            append = F
+        );
+    }
+
+    function writePop(pop, label) {
         n = pop.individualCount;
-        if (n == 0)
-            return(label + "_N:0");
+
+        if (n == 0) {
+            writeFile(
+                OUTPUT_FILE,
+                gen + "," + label + ",0,NA,NA,NA,NA\n",
+                append = T
+            );
+            return;
+        }
 
         counts = pop.individuals.countOfMutationsOfType(m3);
 
-        f_std = sum(counts == 0)/n;
-        f_het = sum(counts == 1)/n;
-        f_inv = sum(counts == 2)/n;
+        f_std = sum(counts == 0) / n;
+        f_het = sum(counts == 1) / n;
+        f_inv = sum(counts == 2) / n;
+        freq  = sum(counts) / (2.0 * n);
 
-        freq = sum(counts)/(2.0*n);
-
-        return label + "_N:" + n +
-               ", " + label + "_Freq:" + freq +
-               ", " + label + "_STD:" + f_std +
-               ", " + label + "_HET:" + f_het +
-               ", " + label + "_INV:" + f_inv;
+        writeFile(
+            OUTPUT_FILE,
+            gen + "," + label + "," + n + "," +
+            freq + "," + f_std + "," + f_het + "," + f_inv + "\n",
+            append = T
+        );
     }
+
+    writePop(p2, "LF");
+    writePop(p3, "MF");
+}
+
 
     catn("Gen:" + gen + " | " + logPop(p2,"LF") + " | " + logPop(p3,"MF"));
 }
