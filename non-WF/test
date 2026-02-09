@@ -1,0 +1,230 @@
+////////////////////////////////////////////////////////////
+// Phase 3: population cage simulation (nonWF)
+////////////////////////////////////////////////////////////
+
+initialize() {
+
+    defineConstant("BASE_DIR", "/Users/jingqi/Desktop/");
+    if (!exists("jobID")) defineConstant("jobID", 1);
+    defineConstant("REP_ID", jobID);
+    defineConstant("OUTPUT_FILE",
+        BASE_DIR + "results/true_overdominance_rep" + REP_ID + ".csv");
+
+    defineConstant("K_cage", 500);
+    defineConstant("Cage_gen", 100);
+    defineConstant("N_low", 4);
+    defineConstant("N_multi", 20);
+
+    defineConstant("L", 23e6);
+    defineConstant("Rec_rate", 2.4e-8);
+
+    defineConstant("Inv_start", 2e6);
+    defineConstant("Inv_center_start", 5.5e6);
+    defineConstant("Inv_center_end", 9.5e6);
+    defineConstant("Inv_end", 13e6);
+    defineConstant("Inv_marker", 3e6);
+
+    defineConstant("MU_total", 3e-9);
+    defineConstant("DFE_shape", 0.33);
+    defineConstant("DFE_mean_s", -0.001);
+    defineConstant("H_dominance", 0.0);
+
+    defineConstant("LOG_interval", 1);
+
+    initializeSLiMModelType("nonWF");
+
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeMutationType("m2", H_dominance, "g", DFE_mean_s, DFE_shape);
+    initializeMutationType("m3", 0.5, "f", 0.0);
+
+    m1.convertToSubstitution = F;
+    m2.convertToSubstitution = F;
+    m3.convertToSubstitution = F;
+
+    initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+    initializeGenomicElement(g1, 0, L - 1);
+
+    initializeMutationRate(MU_total);
+    initializeRecombinationRate(Rec_rate);
+}
+
+////////////////////////////////////////////////////////////
+// Load burn-in and found cages
+////////////////////////////////////////////////////////////
+
+1 early() {
+
+    sim.readFromPopulationFile("inversion_polymorphic_job=285_rep=7789951208438124276_freq=0.0895154.txt");
+
+    // REQUIRED for nonWF if burn-in was WF
+    p1.individuals.age = 0;
+
+    inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
+
+    if (size(inds_HET) < N_multi)
+        stop("Not enough heterozygotes in burn-in.");
+
+    LF_founders = sample(inds_HET, N_low);
+    MF_founders = sample(inds_HET, N_multi);
+
+    sim.addSubpop("p2", 0); // LF cage
+    sim.addSubpop("p3", 0); // MF cage
+
+    defineConstant("Cage_start", sim.cycle);
+    defineConstant("Cage_end", sim.cycle + Cage_gen);
+}
+
+////////////////////////////////////////////////////////////
+// Reproduction: clonal founding, then sexual reproduction
+////////////////////////////////////////////////////////////
+
+reproduction(p2) {
+
+    // Founding generation
+    if (sim.cycle == Cage_start + 1) {
+        perLine = asInteger(K_cage / N_low);
+        for (ind in LF_founders)
+            for (i in 1:perLine)
+                p2.addCloned(ind);
+        return;
+    }
+
+    // Normal reproduction
+    nEggs = p2.individualCount * 2;
+    for (i in 1:nEggs) {
+        parents = sample(p2.individuals, 2);
+        p2.addCrossed(parents[0], parents[1]);
+    }
+}
+
+reproduction(p3) {
+
+    if (sim.cycle == Cage_start + 1) {
+        perLine = asInteger(K_cage / N_multi);
+        for (ind in MF_founders)
+            for (i in 1:perLine)
+                p3.addCloned(ind);
+        return;
+    }
+
+    nEggs = p3.individualCount * 2;
+    for (i in 1:nEggs) {
+        parents = sample(p3.individuals, 2);
+        p3.addCrossed(parents[0], parents[1]);
+    }
+}
+
+////////////////////////////////////////////////////////////
+// Recombination with inversion suppression
+////////////////////////////////////////////////////////////
+
+recombination() {
+
+    if (haplosome1.containsMarkerMutation(m3, Inv_marker) ==
+        haplosome2.containsMarkerMutation(m3, Inv_marker))
+        return F;
+
+    inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+    inCenter = (breakpoints > Inv_center_start) &
+               (breakpoints < Inv_center_end);
+
+    if (!any(inInv))
+        return F;
+
+    if (any(inInv & !inCenter)) {
+        breakpoints = breakpoints[!inInv];
+        return T;
+    }
+
+    if (sum(inCenter) % 2 == 1) {
+        breakpoints = breakpoints[!inInv];
+        return T;
+    }
+
+    return F;
+}
+
+////////////////////////////////////////////////////////////
+// Density regulation & stopping
+////////////////////////////////////////////////////////////
+
+(Cage_start + 1):(Cage_end) early() {
+
+    for (pop in sim.subpopulations) {
+
+        n = pop.individualCount;
+
+        if (n > K_cage) {
+            remove = sample(pop.individuals, n - K_cage);
+            sim.killIndividuals(remove);
+        }
+    }
+
+    if (sim.cycle == Cage_end)
+        sim.simulationFinished();
+}
+
+1:5 late() {
+
+    catn("GEN " + sim.cycle);
+
+    if (exists("LF_founders"))
+        catn("  LF_founders size = " + size(LF_founders));
+    else
+        catn("  LF_founders not defined");
+
+    if (exists("MF_founders"))
+        catn("  MF_founders size = " + size(MF_founders));
+    else
+        catn("  MF_founders not defined");
+
+    if (exists("p2"))
+        catn("  p2 N = " + p2.individualCount);
+    else
+        catn("  p2 missing");
+
+    if (exists("p3"))
+        catn("  p3 N = " + p3.individualCount);
+    else
+        catn("  p3 missing");
+}
+
+
+
+////////////////////////////////////////////////////////////
+// Logging
+////////////////////////////////////////////////////////////
+
+(Cage_start + 1):(Cage_end) late() {
+
+    if (sim.cycle % LOG_interval != 0)
+        return;
+
+    if (!fileExists(OUTPUT_FILE))
+        writeFile(OUTPUT_FILE,
+            "Gen,Pop,N,InvFreq,fSTD,fHET,fINV\n");
+
+    gen_real = sim.cycle - Cage_start;
+
+    // LF
+    n = p2.individualCount;
+    c = p2.individuals.countOfMutationsOfType(m3);
+    writeFile(OUTPUT_FILE,
+        gen_real + ",LF," + n + "," +
+        sum(c)/(2.0*n) + "," +
+        sum(c==0)/n + "," +
+        sum(c==1)/n + "," +
+        sum(c==2)/n + "\n",
+        append=T);
+
+    // MF
+    n = p3.individualCount;
+    c = p3.individuals.countOfMutationsOfType(m3);
+    writeFile(OUTPUT_FILE,
+        gen_real + ",MF," + n + "," +
+        sum(c)/(2.0*n) + "," +
+        sum(c==0)/n + "," +
+        sum(c==1)/n + "," +
+        sum(c==2)/n + "\n",
+        append=T);
+}
