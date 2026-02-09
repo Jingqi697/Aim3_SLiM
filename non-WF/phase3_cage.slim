@@ -42,35 +42,44 @@ initializeRecombinationRate(Rec_rate);
 1 early(){
 sim.readFromPopulationFile(""); // Read from burnin
 inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1]; // Heterozygous population p1, have 1 m3 marker
-LF = sample(inds_HET, N_low);
-MF = sample(inds_HET, N_multi);
+defineConstant("LF_founders", sample(inds_HET, N_low));
+defineConstant("MF_founders", sample(inds_HET, N_multi));
 sim.addSubpop("p2", 0);
 sim.addSubpop("p3", 0);
-// Replicate individuals to K_cage
-perLineLF = asInteger(K_cage / N_low);
-for (ind in LF)
-  for (i in 1:perLineLF)
-     p2.addCloned(ind);
-perLineMF = asInteger(K_cage / N_multi);
-for (ind in MF)
-  for (i in 1:perLineMF)
-     p3.addCloned(ind);
 sim.killIndividuals(p1.individuals);
 p1.removeSubpopulation();
+defineConstant("Cage_start", sim.cycle);
 defineConstant("Cage_end", sim.cycle + Cage_gen);
 }
 
-//Reproduction
-reproduction(p2){
-nEggsLF  = size(p2.individuals) * 2;
-for (i in 1:nEggsLF){
+// Reproduction
+reproduction(p2) {
+if (!exists("LF_clone")) {
+defineConstant("LF_clone", T);
+perLine = asInteger(K_cage / N_low);
+for (ind in LF_founders)
+for (i in 1:perLine)
+p2.addCloned(ind);
+return;
+}
+nEggs = p2.individualCount * 2;
+for (i in 1:nEggs) {
 parents = sample(p2.individuals, 2);
 p2.addCrossed(parents[0], parents[1]);
 }
 }
-reproduction(p3){
-nEggsMF  = size(p3.individuals) * 2;
-for (i in 1:nEggsMF){
+
+reproduction(p3) {
+if (!exists("MF_clone")) {
+defineConstant("MF_clone", T);
+perLine = asInteger(K_cage / N_multi);
+for (ind in MF_founders)
+for (i in 1:perLine)
+p3.addCloned(ind);
+return;
+}
+nEggs = p3.individualCount * 2;
+for (i in 1:nEggs) {
 parents = sample(p3.individuals, 2);
 p3.addCrossed(parents[0], parents[1]);
 }
