@@ -1,0 +1,135 @@
+// Phase 3: population cage experiment
+initialize() {
+    // 1. SET ABSOLUTE PATHS FOR HPC ENVIRONMENT
+    defineConstant("BASE_DIR", "/scratch/cqh6wn/AOD_slim/Plots/9/");
+    defineConstant("BURN_IN_FILE", BASE_DIR + "09_inversion_polymorphic_job=147_rep=4244346102750003549_freq=0.412472.txt");
+
+    // 2. SYNCHRONIZE jobID PASSED FROM SBATCH WITH REP_ID
+    if (!exists("jobID")) defineConstant("jobID", 1);
+    defineConstant("REP_ID", jobID);
+
+    // 3. SET ABSOLUTE PATH FOR OUTPUT CSV
+    defineConstant("OUTPUT_FILE", BASE_DIR + "results/cage_results_rep" + REP_ID + ".csv");
+
+    // Parameters
+    defineConstant("K_CAGE", 1000);
+    defineConstant("NUM_GEN", 100);
+    defineConstant("N_FOUNDERS_LOW", 4);    // LF: single/few-founder [cite: 1265]
+    defineConstant("N_FOUNDERS_HIGH", 20);  // MF: multi-founder [cite: 1267]
+    defineConstant("LOG_INTERVAL", 1);
+    defineConstant("L", 23e6);
+    defineConstant("REC_RATE", 2e-8);
+    defineConstant("INV_START", 2e6);
+    defineConstant("INV_END", 13e6);
+    defineConstant("INV_MARKER_POS", integerDiv(INV_START + INV_END, 2));
+
+    setSeed(getSeed() + REP_ID);
+    initializeSLiMModelType("nonWF");
+
+    // Mutations
+    initializeMutationType("m2", 0.0, "g", -0.05, 0.2); // Recessive deleterious load [cite: 1274]
+    m2.convertToSubstitution = F;
+    initializeMutationType("m3", 0.5, "f", 0.0); // Inversion marker [cite: 1276]
+    m3.convertToSubstitution = F;
+
+    initializeGenomicElementType("g1", m2, 1.0);
+    initializeGenomicElement(g1, 0, L-1);
+    initializeMutationRate(1e-8);
+    initializeRecombinationRate(REC_RATE);
+}
+
+1 early() {
+    sim.readFromPopulationFile(BURN_IN_FILE);
+    current_tick = sim.cycle;
+    defineConstant("START_GEN", current_tick);
+
+    sim.addSubpop("p2", 0); // Low-founder (LF) cage [cite: 1265]
+    sim.addSubpop("p3", 0); // Multi-founder (MF) cage [cite: 1267]
+
+    // Selection of Heterozygote founders [cite: 1167]
+    inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
+    if (size(inds_HET) < (N_FOUNDERS_HIGH + N_FOUNDERS_LOW)) {
+        stop("Not enough heterozygotes in burn-in file");
+    }
+
+    p2.takeMigrants(sample(inds_HET, N_FOUNDERS_LOW));
+    p3.takeMigrants(sample(inds_HET, N_FOUNDERS_HIGH));
+
+    sim.killIndividuals(p1.individuals);
+    p1.removeSubpopulation();
+
+    // Initialize CSV Header
+    header = "rep,gen,treatment,inv_freq,f_std,f_het,f_inv,m2_load";
+    writeFile(OUTPUT_FILE, header, append=F);
+
+    community.rescheduleScriptBlock(s1, start=current_tick + 1, end=current_tick + NUM_GEN);
+    community.rescheduleScriptBlock(s2, start=current_tick, end=current_tick + NUM_GEN);
+}
+
+// Reproduction and Recombination Logic
+reproduction(p1) { self.active = 0; }
+reproduction(p2) {
+    for (i in 1:K_CAGE) {
+        mate1 = p2.sampleIndividuals(1);
+        mate2 = p2.sampleIndividuals(1);
+        p2.addCrossed(mate1, mate2);
+    }
+    self.active = 0;
+}
+reproduction(p3) {
+    for (i in 1:K_CAGE) {
+        mate1 = p3.sampleIndividuals(1);
+        mate2 = p3.sampleIndividuals(1);
+        p3.addCrossed(mate1, mate2);
+    }
+    self.active = 0;
+}
+
+recombination() {
+    // Recombination suppression inside the inversion for heterozygotes [cite: 196, 1276]
+    if (haplosome1.containsMarkerMutation(m3, INV_MARKER_POS) ==
+        haplosome2.containsMarkerMutation(m3, INV_MARKER_POS)) {
+        return F;
+    } else {
+	inInv = (breakpoints > INV_START) & (breakpoints < INV_END);
+        if (!any(inInv)) return F;
+        breakpoints = breakpoints[!inInv];
+        return T;
+    }
+}
+s1 1000000 early() {
+    if (sim.cycle > START_GEN + NUM_GEN) sim.simulationFinished();
+    if (p2.individualCount > 0) p2.fitnessScaling = K_CAGE / p2.individualCount;
+    if (p3.individualCount > 0) p3.fitnessScaling = K_CAGE / p3.individualCount;
+}
+
+// Data Logging
+s2 1000000 late() {
+    gensSinceStart = sim.cycle - START_GEN;
+
+    if (gensSinceStart % LOG_INTERVAL == 0) {
+        populations = c(p2, p3);
+        labels = c("LF", "MF");
+
+        for (i in seqAlong(populations)) {
+            pop = populations[i];
+            label = labels[i];
+            n = pop.individualCount;
+
+            if (n > 0) {
+                m3_counts = pop.individuals.countOfMutationsOfType(m3);
+                f_std = sum(m3_counts == 0) / n;
+                f_het = sum(m3_counts == 1) / n;
+                f_inv = sum(m3_counts == 2) / n;
+                inv_freq = sum(m3_counts) / (2.0 * n);
+
+                // Track deleterious mutation load (AOD hypothesis) [cite: 1258, 1259]
+                m2_load = mean(pop.individuals.countOfMutationsOfType(m2));
+
+                line = REP_ID + "," + gensSinceStart + "," + label + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv + "," + m2_load;
+                writeFile(OUTPUT_FILE, line, append=T);
+            }
+	}
+    }
+}
+
