@@ -111,9 +111,7 @@ return T;
 return F;
 }
 
-early() {
-if (sim.cycle <= Cage_start)
-        return;
+(Cage_start + 1):(Cage_end) early() {
     for (pop in sim.subpopulations) {
         keep = sample(pop.individuals, K_cage);
         for (ind in pop.individuals)
@@ -127,9 +125,7 @@ if (sim.cycle <= Cage_start)
 
 
 
-late() {
-if (sim.cycle <= Cage_start)
-        return;
+(Cage_start + 1):(Cage_end) late() {
 if (sim.cycle % LOG_interval != 0)
 return;
 // write header 
