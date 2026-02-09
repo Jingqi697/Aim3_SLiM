@@ -112,18 +112,17 @@ return F;
 }
 
 early() {
-for (pop in sim.subpopulations) {
-if (pop.individualCount <= K_cage)
-            continue;
-keep = sample(pop.individuals, K_cage);
-for (ind in pop.individuals) {
-if (!any(ind == keep))
-sim.killIndividuals(ind);
+    for (pop in sim.subpopulations) {
+        keep = sample(pop.individuals, K_cage);
+        for (ind in pop.individuals)
+            if (!any(ind == keep))
+                sim.killIndividuals(ind);
+    }
+
+    if (sim.cycle > Cage_end)
+        sim.simulationFinished();
 }
-}
-if (sim.cycle > Cage_end)
-sim.simulationFinished();
-}
+
 
 
 late() {
