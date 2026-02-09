@@ -104,16 +104,16 @@ return F;
 
 early() {
 gen = sim.cycle;
-for (pop in sim.subpopulations)
-{
-// randomly choose exactly K_cage survivors
-keep = sample(pop.individuals, K_cage);
-// kill all others
-pop.individuals[!(pop.individuals.id %in% keep.id)].fitnessScaling = 0.0;
+for (pop in sim.subpopulations) {
+// Randomly choose survivors
+keep = sample(pop.individuals, min(K_cage, pop.individualCount));
+// Kill everyone else
+sim.killIndividuals(pop.individuals[!pop.individuals.isIn(keep)]);
 }
 if (gen > Cage_end)
 sim.simulationFinished();
 }
+
 
 late() {
     gen = sim.cycle;
