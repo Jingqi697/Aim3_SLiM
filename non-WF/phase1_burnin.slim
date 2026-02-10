@@ -51,7 +51,7 @@ p1.fitnessScaling = K_ancestral / p1.individualCount;
 // Logging
 1:Burnin_gen late() {
 if (sim.cycle % 1000 == 0) {
-// Mean fitness (before density scaling)
+// Mean fitness 
 meanFit = mean(p1.cachedFitness(NULL));
 // Total deleterious mutation count 
 total_m2 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m2));
