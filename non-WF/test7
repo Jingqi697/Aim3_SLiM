@@ -1,0 +1,125 @@
+////////////////////////////////////////////////////////////
+// Phase 3: Population Cage Simulation (Aim 3)
+// Comparing Associative Overdominance (AOD) Dynamics
+////////////////////////////////////////////////////////////
+
+initialize() {
+    // Parameters from Qualifying Proposal [cite: 30, 207]
+    defineConstant("BURN_IN_FILE", "inversion_polymorphic_job=285_rep=7789951208438124276_freq=0.0895154.txt");
+    defineConstant("K_cage", 500); 
+    defineConstant("N_low", 2); 
+    defineConstant("N_multi", 4);
+    defineConstant("Max_Gen", 100);
+
+    defineConstant("L", 23e6);
+    defineConstant("Rec_rate", 2.4e-8);
+    defineConstant("Inv_start", 2e6); 
+    defineConstant("Inv_end", 13e6);
+    defineConstant("Inv_marker", 3e6);
+
+    initializeSLiMModelType("nonWF");
+
+    // Mutation definitions [cite: 565, 680]
+    initializeMutationType("m1", 0.5, "f", 0.0);
+    initializeMutationType("m2", 0.0, "g", -0.001, 0.33); 
+    initializeMutationType("m3", 0.5, "f", 0.0); 
+    
+    m1.convertToSubstitution = F;
+    m2.convertToSubstitution = F;
+    m3.convertToSubstitution = F;
+
+    initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+    initializeGenomicElement(g1, 0, L - 1);
+
+    initializeMutationRate(3e-9);
+    initializeRecombinationRate(Rec_rate);
+}
+
+1 early() {
+    sim.readFromPopulationFile(BURN_IN_FILE);
+    defineConstant("START_CYCLE", sim.cycle);
+    
+    // Sample heterozygotes for founders [cite: 207, 632]
+    inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
+
+    sim.addSubpop("p2", 0); 
+    sim.addSubpop("p3", 0); 
+
+    LF_founders = sample(inds_HET, N_low);
+    MF_founders = sample(inds_HET, N_multi);
+
+    p2.takeMigrants(LF_founders);
+    p3.takeMigrants(MF_founders);
+    p1.removeSubpopulation();
+    
+    catn("Phase 3 Started at Cycle: " + START_CYCLE);
+    
+    // Extend the simulation window for 100 generations 
+    community.rescheduleScriptBlock(s1, START_CYCLE, START_CYCLE + Max_Gen);
+}
+
+reproduction() {
+    relativeGen = sim.cycle - START_CYCLE;
+
+    if (relativeGen == 0) {
+        // Initial cloning to fill cage [cite: 632]
+        perInd = asInteger(K_cage / subpop.individualCount);
+        for (ind in subpop.individuals)
+            for (i in 1:perInd) subpop.addCloned(ind);
+        
+        // Use integer 0 to disable callback to fix the error
+        self.active = 0; 
+        return;
+    }
+    
+    // Mating: Generate exactly 500 offspring 
+    for (i in 1:K_cage) {
+        parents = subpop.sampleIndividuals(2);
+        subpop.addCrossed(parents[0], parents[1]);
+    }
+    
+    // Use integer 0 to disable callback to fix the error
+    self.active = 0;
+}
+
+early() {
+    if (sim.cycle == START_CYCLE) return;
+    // Size control: Kill adults to maintain discrete generations [cite: 563]
+    for (sub in sim.subpopulations) {
+        inds = sub.individuals;
+        adults = inds[inds.age > 0];
+        sim.killIndividuals(adults);
+    }
+}
+
+recombination() {
+    // Suppression of recombination logic
+    if (haplosome1.containsMarkerMutation(m3, Inv_marker) != haplosome2.containsMarkerMutation(m3, Inv_marker)) {
+        inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+        if (any(inInv)) {
+            breakpoints = breakpoints[!inInv];
+            return T;
+        }
+    }
+    return F;
+}
+
+s1 late() {
+    relativeGen = sim.cycle - START_CYCLE;
+    
+    if (relativeGen % 1 == 0) {
+        for (sub in sim.subpopulations) {
+            invCopies = sum(sub.individuals.countOfMutationsOfType(m3));
+            freq = invCopies / (2.0 * sub.individualCount);
+            numHET = sum(sub.individuals.countOfMutationsOfType(m3) == 1);
+            
+            catn("Gen " + relativeGen + " | Cage " + sub.id + 
+                 " | InvFreq: " + freq + " | Hets: " + numHET);
+        }
+    }
+
+    if (relativeGen >= Max_Gen) {
+        catn("Aim 3 Simulation Complete.");
+        sim.simulationFinished();
+    }
+}
