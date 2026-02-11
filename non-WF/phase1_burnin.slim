@@ -51,6 +51,8 @@ p1.fitnessScaling = K_ancestral / p1.individualCount;
 // Logging
 1:Burnin_gen late() {
 if (sim.cycle % 1000 == 0) {
+// Mean fitness
+mean_fit = mean(p1.cachedFitness(NULL));
 // Total deleterious mutation count 
 total_m1 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m1));
 total_m2 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m2));
@@ -63,6 +65,7 @@ hom_m2 = hom_m2 + size(setIntersection(m2id1, m2id2));
 }
 catn("Gen: " + sim.cycle +
 " | N: " + p1.individualCount +
+" | meanFit: " + mean_fit +
 " | m1 copies: " + total_m1 +
 " | m2 copies: " + total_m2 +
 " | homozygous m2: " + hom_m2);
