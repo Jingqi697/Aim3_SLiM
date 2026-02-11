@@ -48,16 +48,18 @@ catn("Gen: " + (sim.cycle - 1) +
 1:Burnin_gen late() {
 if (sim.cycle % 1000 == 0) {
 // Total deleterious mutation count 
+total_m1 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m1));
 total_m2 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m2));
 // Homozygous deleterious burden
-hom_m2 = 0;
-for (ind in p1.individuals) {
-hom_m2 = hom_m2 +
-sum(ind.haploidGenome1.countOfMutationsOfType(m2) &
-ind.haploidGenome2.countOfMutationsOfType(m2));
+hom_m2 = 0; 
+for (ind in p1.individuals) { 
+muts1 = ind.haploidGenome1.mutationsOfType(m2); 
+muts2 = ind.haploidGenome2.mutationsOfType(m2); 
+hom_m2 = hom_m2 + size(setIntersection(muts1, muts2)); 
 }
 catn("Gen: " + sim.cycle +
 " | N: " + p1.individualCount +
+" | m1 copies: " + total_m1 +
 " | m2 copies: " + total_m2 +
 " | homozygous m2: " + hom_m2);
 }
