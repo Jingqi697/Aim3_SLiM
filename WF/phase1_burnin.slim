@@ -53,9 +53,9 @@ total_m2 = sum(p1.individuals.haplosomes.countOfMutationsOfType(m2));
 // Homozygous deleterious burden
 hom_m2 = 0; 
 for (ind in p1.individuals) { 
-muts1 = ind.haploidGenome1.mutationsOfType(m2); 
-muts2 = ind.haploidGenome2.mutationsOfType(m2); 
-hom_m2 = hom_m2 + size(setIntersection(muts1, muts2)); 
+m2id1 = ind.haploidGenome1.mutationsOfType(m2); 
+m2id2 = ind.haploidGenome2.mutationsOfType(m2); 
+hom_m2 = hom_m2 + size(setIntersection(m2id1, m2id2)); 
 }
 catn("Gen: " + sim.cycle +
 " | N: " + p1.individualCount +
