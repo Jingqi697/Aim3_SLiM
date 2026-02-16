@@ -1,0 +1,202 @@
+// Phase 3: population cage simulation
+
+initialize() {
+// Output files
+defineConstant("BASE_DIR", "/scratch/cqh6wn/");
+if (!exists("jobID")) defineConstant("jobID", 1);
+setSeed(getSeed() + jobID);
+defineConstant("REP_ID", jobID);
+defineConstant("OUTPUT_FILE", BASE_DIR + "results/cage_results_rep" + REP_ID + ".csv");
+// Cage parameters
+defineConstant("K_CAGE", 1000);
+defineConstant("NUM_GEN", 100);
+defineConstant("N_FOUNDERS_LOW", 2);
+defineConstant("N_FOUNDERS_HIGH", 20);
+// Chromosome parameters
+defineConstant("L", 23e6);
+defineConstant("Rec_rate", 2.4e-8);
+defineConstant("Inv_start", 2e6);
+defineConstant("Inv_center_start", 5.5e6);
+defineConstant("Inv_center_end", 9.5e6);
+defineConstant("Inv_end", 13e6);
+defineConstant("Inv_marker", 3e6);
+// Mutation parameters
+defineConstant("MU_total", 3e-9);
+defineConstant("DFE_shape", 0.33);
+defineConstant("DFE_mean_s", -0.001);
+defineConstant("H_dominance", 0.0);
+// Model
+initializeSLiMModelType("WF");
+// Mutations
+initializeMutationType("m1", 0.5, "f", 0.0);
+m1.convertToSubstitution = T;
+initializeMutationType("m2", H_dominance, "g", DFE_mean_s, DFE_shape);
+m2.convertToSubstitution = T;
+initializeMutationType("m3", 0.5, "f", 0.0);
+m3.convertToSubstitution = F;
+// Genome
+initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+initializeGenomicElement(g1, 0, L-1);
+initializeMutationRate(MU_total);
+initializeRecombinationRate(Rec_rate);
+}
+
+// 
+1 early() {
+sim.readFromPopulationFile("");
+HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
+founders = sample(HET, N_FOUNDERS_LOW + N_FOUNDERS_HIGH);
+LF = founders[0:(N_FOUNDERS_LOW-1)];
+MF = founders[N_FOUNDERS_LOW:(N_FOUNDERS_LOW + N_FOUNDERS_HIGH - 1)];
+sim.addSubpop("p2", K_CAGE); 
+sim.addSubpop("p3", K_CAGE);
+// p2 = LF
+list = 0;
+for (i in 0:(K_CAGE-1)) {
+template = LF[list];
+p2.individuals[i].haploidGenome1.removeMutations();
+p2.individuals[i].haploidGenome2.removeMutations();
+p2.individuals[i].haploidGenome1.addMutations(template.haploidGenome1.mutations);
+p2.individuals[i].haploidGenome2.addMutations(template.haploidGenome2.mutations);
+list = list + 1;
+if (list == N_FOUNDERS_LOW) list = 0;
+}
+// p3 = MF
+list = 0;
+for (i in 0:(K_CAGE-1)) {
+template = MF[list];
+p3.individuals[i].haploidGenome1.removeMutations();
+p3.individuals[i].haploidGenome2.removeMutations();
+p3.individuals[i].haploidGenome1.addMutations(template.haploidGenome1.mutations);
+p3.individuals[i].haploidGenome2.addMutations(template.haploidGenome2.mutations);
+list = list + 1;
+if (list == N_FOUNDERS_HIGH) list = 0;
+}
+
+sim.recalculateFitness();
+p1.setSubpopulationSize(0);
+defineConstant("START_GEN", sim.cycle);
+}
+
+// Recombination
+recombination() {
+// If have same arrangements, normal recombination
+if (haplosome1.containsMarkerMutation(m3, Inv_marker) == haplosome2.containsMarkerMutation(m3, Inv_marker))
+return F;
+// 
+inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+inCenter = (breakpoints > Inv_center_start) & (breakpoints < Inv_center_end);
+Rec_inCenter = breakpoints[inCenter];
+// If no cross over within inversion, normal recombination
+if (!any(inInv))
+return F;
+// If crossover happen within inversions but outside center, supressed recombination
+if (any(inInv & !inCenter)) {
+breakpoints = breakpoints[!inInv];
+return T;
+}
+// If odd numbers of crossovers happen within inversion center, supressed recombination
+if (size(Rec_inCenter) % 2 == 1) {
+breakpoints = breakpoints[!inInv];
+return T;
+} 
+// If even numbers of crossovers happen with inversion center, normal recombination
+return F;
+}
+
+(START_GEN + 1):(START_GEN + NUM_GEN) late() {
+gensSinceStart = sim.cycle - START_GEN;
+if (gensSinceStart % 1 == 0) {
+populations = c(p2, p3);
+labels = c("LF", "MF");
+for (i in seqAlong(populations)) {
+sub = populations[i];
+label = labels[i];
+n = sub.individualCount;
+if (n > 0) {
+m3_counts = sub.individuals.countOfMutationsOfType(m3);
+f_std = sum(m3_counts == 0) / n;
+f_het = sum(m3_counts == 1) / n;
+f_inv = sum(m3_counts == 2) / n;
+inv_freq = sum(m3_counts) / (2.0 * n);
+line = REP_ID + "," + gensSinceStart + "," + label + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
+                writeFile(OUTPUT_FILE, line, append=T);
+}
+}
+}
+if (gensSinceStart >= NUM_GEN) {
+catn("Aim 3 Simulation Complete.");
+sim.simulationFinished();
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
