@@ -54,7 +54,7 @@ p2.individuals[i].haploidGenome1.removeMutations();
 p2.individuals[i].haploidGenome2.removeMutations();
 p2.individuals[i].haploidGenome1.addMutations(template.haploidGenome1.mutations);
 p2.individuals[i].haploidGenome2.addMutations(template.haploidGenome2.mutations);
-list = list + 1
+list = list + 1;
 if (list == N_FOUNDERS_LOW) list = 0;
 }
 // p3 = MF
@@ -65,7 +65,7 @@ p3.individuals[i].haploidGenome1.removeMutations();
 p3.individuals[i].haploidGenome2.removeMutations();
 p3.individuals[i].haploidGenome1.addMutations(template.haploidGenome1.mutations);
 p3.individuals[i].haploidGenome2.addMutations(template.haploidGenome2.mutations);
-list = list + 1
+list = list + 1;
 if (list == N_FOUNDERS_HIGH) list = 0;
 }
 
