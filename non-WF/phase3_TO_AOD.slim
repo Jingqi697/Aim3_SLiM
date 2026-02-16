@@ -1,0 +1,166 @@
+// Phase 3: population cage simulation
+
+initialize() {
+// Cage parameters
+defineConstant("K_CAGE", 1000);
+defineConstant("NUM_GEN", 100);
+defineConstant("N_FOUNDERS_LOW", 2);
+defineConstant("N_FOUNDERS_HIGH", 20);
+// Chromosome parameters
+defineConstant("L", 23e6);
+defineConstant("Rec_rate", 2.4e-8);
+defineConstant("Inv_start", 2e6);
+defineConstant("Inv_center_start", 5.5e6);
+defineConstant("Inv_center_end", 9.5e6);
+defineConstant("Inv_end", 13e6);
+defineConstant("Inv_marker", 3e6);
+// Mutation parameters
+defineConstant("MU_total", 3e-9);
+defineConstant("DFE_shape", 0.33);
+defineConstant("DFE_mean_s", -0.001);
+defineConstant("H_dominance", 0.0);
+// job id
+if (!exists("jobID")) defineConstant("jobID", 1);
+setSeed(getSeed() + jobID);
+initializeSLiMModelType("nonWF");
+// Mutations
+initializeMutationType("m1", 0.5, "f", 0.0);
+m1.convertToSubstitution = F;
+initializeMutationType("m2", H_dominance, "g", DFE_mean_s, DFE_shape);
+m2.convertToSubstitution = F;
+initializeMutationType("m3", 0.5, "f", 0.0);
+m3.convertToSubstitution = F;
+// Genome
+initializeGenomicElementType("g1", c(m1, m2), c(0.26, 0.74));
+initializeGenomicElement(g1, 0, L-1);
+initializeMutationRate(MU_total);
+initializeRecombinationRate(Rec_rate);
+}
+
+1 early() {
+sim.readFromPopulationFile("inversion_polymorphic_job=285_rep=7789951208438124276_freq=0.0895154.txt"); // Read burnin
+defineConstant("START_GEN", sim.cycle);
+sim.addSubpop("p2", 0); // LF Cage
+sim.addSubpop("p3", 0); // MF Cage
+inds_HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1]; // Pick heterozygotes
+p2.takeMigrants(sample(inds_HET, N_FOUNDERS_LOW));
+p3.takeMigrants(sample(inds_HET, N_FOUNDERS_HIGH));
+sim.killIndividuals(p1.individuals);
+p1.removeSubpopulation(); // Remove p1
+catn("Phase 3 Started at Cycle: " + START_GEN); // Log
+}
+
+reproduction(p2) {
+clone_gen = sim.cycle - START_GEN;
+if (clone_gen == 1){
+catn("Pre-cloning count (p2): " + p2.individualCount);
+// Initial cloning
+perInd = asInteger(K_CAGE / p2.individualCount);
+for (ind in p2.individuals)
+for (i in 1:perInd) p2.addCloned(ind);
+catn("Post-cloning count (p2): " + p2.individualCount);
+// Verify all are still heterozygotes (should be 100% if inds_HET worked)
+catn("Heterozygote count: " + sum(p2.individuals.countOfMutationsOfType(m3) == 1));
+self.active = 0;
+return;
+}
+for (i in 1:K_CAGE) {
+parents = p2.sampleIndividuals(2);
+p2.addCrossed(parents[0], parents[1]);
+}
+self.active = 0;
+}
+
+reproduction(p3) {
+clone_gen = sim.cycle - START_GEN;
+if (clone_gen == 1){
+// Initial cloning
+perInd = asInteger(K_CAGE / p3.individualCount);
+for (ind in p3.individuals)
+for (i in 1:perInd) p3.addCloned(ind);
+self.active = 0;
+return;
+}
+for (i in 1:K_CAGE) {
+parents = p3.sampleIndividuals(2);
+p3.addCrossed(parents[0], parents[1]);
+}
+self.active = 0;
+}
+
+
+
+// Recombination
+recombination() {
+// If have same arrangements, normal recombination
+if (haplosome1.containsMarkerMutation(m3, Inv_marker) == haplosome2.containsMarkerMutation(m3, Inv_marker))
+return F;
+//
+inInv = (breakpoints > Inv_start) & (breakpoints < Inv_end);
+inCenter = (breakpoints > Inv_center_start) & (breakpoints < Inv_center_end);
+Rec_inCenter = breakpoints[inCenter];
+// If no cross over within inversion, normal recombination
+if (!any(inInv))
+return F;
+// If crossover happen within inversions but outside center, supressed recombination
+if (any(inInv & !inCenter)) {
+breakpoints = breakpoints[!inInv];
+return T;
+}
+// If odd numbers of crossovers happen within inversion center, supressed recombination
+if (size(Rec_inCenter) % 2 == 1) {
+breakpoints = breakpoints[!inInv];
+return T;
+}
+// If even numbers of crossovers happen with inversion center, normal recombination
+return F;
+}
+
+// True Overdominance
+fitnessEffect() {
+    m3_count = individual.countOfMutationsOfType(m3);
+    if (m3_count == 1) return 1.01; // 1% fitness boost
+    return 1.00;
+}
+
+late() {
+if (sim.cycle <= START_GEN) return;
+
+for (sub in sim.subpopulations) {
+adults = sub.individuals[sub.individuals.age > 0];
+if (size(adults) > 0)
+sim.killIndividuals(adults);
+}
+}
+
+
+// Tracking
+(START_GEN + 1):(START_GEN + NUM_GEN) late() {
+gensSinceStart = sim.cycle - START_GEN;
+if (gensSinceStart % 1 == 0) {
+populations = c(p2, p3);
+labels = c("LF", "MF");
+for (i in seqAlong(populations)) {
+sub = populations[i];
+label = labels[i];
+n = sub.individualCount;
+if (n > 0) {
+m3_counts = sub.individuals.countOfMutationsOfType(m3);
+f_std = sum(m3_counts == 0) / n;
+f_het = sum(m3_counts == 1) / n;
+f_inv = sum(m3_counts == 2) / n;
+catn("Gen " + gensSinceStart + " | Cage: " + label +
+" | STD: " + format("%.3f", f_std) +
+" | HET: " + format("%.3f", f_het) +
+" | INV: " + format("%.3f", f_inv));
+}
+}
+}
+if (gensSinceStart >= NUM_GEN) {
+catn("Aim 3 Simulation Complete.");
+sim.simulationFinished();
+}
+}
+
+
+
