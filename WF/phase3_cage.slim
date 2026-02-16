@@ -41,14 +41,14 @@ initializeRecombinationRate(Rec_rate);
 1 early() {
 sim.readFromPopulationFile("");
 HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
-founders = sample(hets, N_FOUNDERS_LOW + N_FOUNDERS_HIGH);
+founders = sample(HET, N_FOUNDERS_LOW + N_FOUNDERS_HIGH);
 LF = founders[0:(N_FOUNDERS_LOW-1)];
 MF = founders[N_FOUNDERS_LOW:(N_FOUNDERS_LOW + N_FOUNDERS_HIGH - 1)];
-sim.addSubpop("p2", K_cage); 
-sim.addSubpop("p3", K_cage);
+sim.addSubpop("p2", K_CAGE); 
+sim.addSubpop("p3", K_CAGE);
 // p2 = LF
-list = 0
-for (i in 0:(K_cage-1)) {
+list = 0;
+for (i in 0:(K_CAGE-1)) {
 template = LF[list];
 p2.individuals[i].haploidGenome1.removeMutations();
 p2.individuals[i].haploidGenome2.removeMutations();
@@ -58,8 +58,8 @@ list = list + 1
 if (list == N_FOUNDERS_LOW) list = 0;
 }
 // p3 = MF
-list = 0
-for (i in 0:(K_cage-1)) {
+list = 0;
+for (i in 0:(K_CAGE-1)) {
 template = MF[list];
 p3.individuals[i].haploidGenome1.removeMutations();
 p3.individuals[i].haploidGenome2.removeMutations();
@@ -71,6 +71,7 @@ if (list == N_FOUNDERS_HIGH) list = 0;
 
 p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
+}
 
 // Recombination
 recombination() {
@@ -98,7 +99,7 @@ return T;
 return F;
 }
 
-(START_GEN + 1):(START_GEN + Cage_gen) late() {
+(START_GEN + 1):(START_GEN + NUM_GEN) late() {
 gensSinceStart = sim.cycle - START_GEN;
 if (gensSinceStart % 1 == 0) {
 populations = c(p2, p3);
