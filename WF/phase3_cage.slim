@@ -69,6 +69,7 @@ list = list + 1;
 if (list == N_FOUNDERS_HIGH) list = 0;
 }
 
+sim.recalculateFitness();
 p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
 }
