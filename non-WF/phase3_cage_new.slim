@@ -48,22 +48,38 @@ p3.takeMigrants(sample(inds_HET, N_FOUNDERS_HIGH));
 sim.killIndividuals(p1.individuals); 
 p1.removeSubpopulation(); // Remove p1
 catn("Phase 3 Started at Cycle: " + START_GEN); // Log
-community.rescheduleScriptBlock(s1, start=START_GEN, end=START_GEN + NUM_GEN);
 }
 
-reproduction() {
+reproduction(p2) {
 rep_gen = sim.cycle - START_GEN;
 if (rep_gen == 0){
 // Initial cloning
-perInd = asInteger(K_cage / subpop.individualCount);
-for (ind in subpop.individuals)
-for (i in 1:perInd) subpop.addColoned(ind);
-self.ative = 0;
+perInd = asInteger(K_CAGE / p2.individualCount);
+for (ind in p2.individuals)
+for (i in 1:perInd) p2.addCloned(ind);
+self.active = 0;
 return;
 }
-for (i in 1:K_cage) {
-parents = subpop.sampleIndividuals(2);
-subpop.addCrossed(parents[0], parents[1]);
+for (i in 1:K_CAGE) {
+parents = p2.sampleIndividuals(2);
+p2.addCrossed(parents[0], parents[1]);
+}
+self.active = 0;
+}
+
+reproduction(p3) {
+rep_gen = sim.cycle - START_GEN;
+if (rep_gen == 0){
+// Initial cloning
+perInd = asInteger(K_CAGE / p3.individualCount);
+for (ind in p3.individuals)
+for (i in 1:perInd) p3.addCloned(ind);
+self.active = 0;
+return;
+}
+for (i in 1:K_CAGE) {
+parents = p3.sampleIndividuals(2);
+p3.addCrossed(parents[0], parents[1]);
 }
 self.active = 0;
 }
@@ -104,7 +120,7 @@ return F;
 }
 
 // Tracking
-s1 late() {
+(START_GEN + 1):(START_GEN + NUM_GEN) late() {
 gensSinceStart = sim.cycle - START_GEN;
 if (gensSinceStart % 1 == 0) {
 populations = c(p2, p3);
