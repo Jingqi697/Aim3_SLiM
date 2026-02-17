@@ -38,7 +38,7 @@ initializeRecombinationRate(Rec_rate);
 // Create population of heterozygotes
 sim.addSubpop("p1", 100);
 for (ind in p1.individuals) {
-ind.genome1.addNewMutation(m3, 0.0, Inv_marker);
+ind.genomes[0].addNewMutation(m3, 0.0, INV_MARKER_POS);
 // genome2 left blank → all heterozygotes
 }
 HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
