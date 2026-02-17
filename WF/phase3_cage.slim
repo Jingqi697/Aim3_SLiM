@@ -38,8 +38,8 @@ initializeRecombinationRate(Rec_rate);
 }
 
 // 
-1 early() {
-sim.readFromPopulationFile("");
+1 late() {
+sim.readFromPopulationFile("inversion_polymorphic_job=379_rep=8591182220835234285_freq=0.0803.txt");
 HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
 founders = sample(HET, N_FOUNDERS_LOW + N_FOUNDERS_HIGH);
 LF = founders[0:(N_FOUNDERS_LOW-1)];
@@ -100,25 +100,26 @@ return T;
 return F;
 }
 
-(START_GEN + 1):(START_GEN + NUM_GEN) late() {
+// Output Tracking
+1:200000 late() {
+if (!exists("START_GEN")) return;
 gensSinceStart = sim.cycle - START_GEN;
-if (gensSinceStart % 1 == 0) {
+if (gensSinceStart < 0) return;
+if (gensSinceStart > NUM_GEN) return;
 populations = c(p2, p3);
 labels = c("LF", "MF");
 for (i in seqAlong(populations)) {
 sub = populations[i];
-label = labels[i];
 n = sub.individualCount;
 if (n > 0) {
 m3_counts = sub.individuals.countOfMutationsOfType(m3);
-f_std = sum(m3_counts == 0) / n;
-f_het = sum(m3_counts == 1) / n;
-f_inv = sum(m3_counts == 2) / n;
-catn("Gen " + gensSinceStart + " | Cage: " + label + 
+f_std = mean(m3_counts == 0);
+f_het = mean(m3_counts == 1);
+f_inv = mean(m3_counts == 2);
+catn("Gen " + gensSinceStart + " | Cage: " + labels[i] + 
 " | STD: " + format("%.3f", f_std) + 
 " | HET: " + format("%.3f", f_het) + 
 " | INV: " + format("%.3f", f_inv));
-}
 }
 }
 if (gensSinceStart >= NUM_GEN) {
