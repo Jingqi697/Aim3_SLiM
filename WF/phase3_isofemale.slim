@@ -41,7 +41,7 @@ initializeRecombinationRate(Rec_rate);
 }
 
 // 
-1 early() {
+1 late() {
 sim.readFromPopulationFile("");
 HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
 founders = sample(HET, N_FOUNDERS);
@@ -60,8 +60,11 @@ p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
 }
 
-(START_GEN + 1) early() {
-    p2.setSubpopulationSize(K_Bottle);
+1:200000 early() {
+if (!exists("START_GEN")) return;
+if (sim.cycle == START_GEN + 1) {
+p2.setSubpopulationSize(K_Bottle);
+}
 }
 
 
@@ -91,8 +94,11 @@ return T;
 return F;
 }
 
-(START_GEN + 1):(START_GEN + NUM_GEN) late() {
+1:200000 late() {
+if (!exists("START_GEN")) return;
 gensSinceStart = sim.cycle - START_GEN;
+if (gensSinceStart < 0) return;
+if (gensSinceStart > NUM_GEN) return;
 n = p2.individualCount;
 if (n > 0) {
 m3_counts = p2.individuals.countOfMutationsOfType(m3);
@@ -100,11 +106,14 @@ f_std = sum(m3_counts == 0) / n;
 f_het = sum(m3_counts == 1) / n;
 f_inv = sum(m3_counts == 2) / n;
 inv_freq = sum(m3_counts) / (2.0 * n);
-line = REP_ID + "," + gensSinceStart + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
-                writeFile(OUTPUT_FILE, line, append=T);
+line = REP_ID + "," + gensSinceStart + "," + n + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
+writeFile(OUTPUT_FILE, line, append=T);
+// Log gen0
+if (gensSinceStart == 0) {
+catn("Gen 0 | Cage: " + " | HET: " + format("%.3f", f_het));
+}
 }
 if (gensSinceStart >= NUM_GEN) {
-catn("Aim 3 Simulation Complete.");
 sim.simulationFinished();
 }
 }
