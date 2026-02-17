@@ -42,7 +42,7 @@ initializeRecombinationRate(Rec_rate);
 }
 
 // 
-1 early() {
+1 late() {
 sim.readFromPopulationFile("");
 HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
 founders = sample(HET, N_FOUNDERS_LOW + N_FOUNDERS_HIGH);
@@ -104,9 +104,12 @@ return T;
 return F;
 }
 
-(START_GEN + 1):(START_GEN + NUM_GEN) late() {
+1:200000 late() {
+if (!exists("START_GEN")) return;
 gensSinceStart = sim.cycle - START_GEN;
-if (gensSinceStart % 1 == 0) {
+// Only run for the duration of the cage simulation
+if (gensSinceStart < 0) return;
+if (gensSinceStart > NUM_GEN) return;
 populations = c(p2, p3);
 labels = c("LF", "MF");
 for (i in seqAlong(populations)) {
@@ -118,18 +121,19 @@ m3_counts = sub.individuals.countOfMutationsOfType(m3);
 f_std = sum(m3_counts == 0) / n;
 f_het = sum(m3_counts == 1) / n;
 f_inv = sum(m3_counts == 2) / n;
-inv_freq = sum(m3_counts) / (2.0 * n);
+inv_freq = sum(m3_counts) / (2.0 * n);     
 line = REP_ID + "," + gensSinceStart + "," + label + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
-                writeFile(OUTPUT_FILE, line, append=T);
+writeFile(OUTPUT_FILE, line, append=T);
+// Log Gen 0 to confirm HET
+if (gensSinceStart == 0) {
+catn("Gen 0 | Cage: " + label + " | HET: " + format("%.3f", f_het));
 }
 }
-}
+}    
 if (gensSinceStart >= NUM_GEN) {
-catn("Aim 3 Simulation Complete.");
 sim.simulationFinished();
 }
 }
-
 
 
 
