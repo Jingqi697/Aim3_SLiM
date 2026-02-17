@@ -60,7 +60,7 @@ p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
 }
 
-2 early() {
+(START_GEN + 1) early() {
     p2.setSubpopulationSize(K_Bottle);
 }
 
