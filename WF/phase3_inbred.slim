@@ -1,4 +1,4 @@
-// Phase 3: population cage simulation
+// Phase 3: inbred line simulation
 
 initialize() {
 // Output files
@@ -8,8 +8,8 @@ setSeed(getSeed() + jobID);
 defineConstant("REP_ID", jobID);
 defineConstant("OUTPUT_FILE", BASE_DIR + "results/cage_results_rep" + REP_ID + ".csv");
 // Cage parameters
-defineConstant("K_Bottle", 50);
-defineConstant("NUM_GEN", 100);
+// defineConstant("K_Bottle", 2);
+defineConstant("NUM_GEN", 20);
 defineConstant("N_FOUNDERS", 2);
 // Chromosome parameters
 defineConstant("L", 23e6);
@@ -59,14 +59,6 @@ sim.recalculateFitness();
 p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
 }
-
-1:200000 early() {
-if (!exists("START_GEN")) return;
-if (sim.cycle == START_GEN + 1) {
-p2.setSubpopulationSize(K_Bottle);
-}
-}
-
 
 // Recombination
 recombination() {
