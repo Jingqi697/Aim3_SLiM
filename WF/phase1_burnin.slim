@@ -17,10 +17,10 @@ defineConstant("Burnin_gen", 10 * K_ancestral); // Burn-in gen = 10N
 initializeSLiMModelType("WF");
 // Neutral mutation m1
 initializeMutationType("m1", 0.5, "f", 0.0);
-m1.convertToSubstitution = F;
+m1.convertToSubstitution = T;
 // Deleterious mutation m2
 initializeMutationType("m2", H_dominance, "g", DFE_mean_s, DFE_shape);
-m2.convertToSubstitution = F;
+m2.convertToSubstitution = T;
 // Inversion marker m3
 initializeMutationType("m3", 0.5, "f", 0.0);
 defineConstant("Inv_marker", integerDiv(Inv_start + Inv_end, 2));
