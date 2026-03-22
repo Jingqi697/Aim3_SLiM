@@ -6,7 +6,7 @@ defineConstant("BASE_DIR", "/scratch/cqh6wn/");
 if (!exists("jobID")) defineConstant("jobID", 1);
 setSeed(getSeed() + jobID);
 defineConstant("REP_ID", jobID);
-defineConstant("OUTPUT_FILE", BASE_DIR + "results/cage_results_rep" + REP_ID + ".csv");
+defineConstant("OUTPUT_FILE", BASE_DIR + "results/inbred_results_rep" + REP_ID + ".csv");
 // Cage parameters
 defineConstant("K_Bottle", 50);
 defineConstant("NUM_GEN", 20);
