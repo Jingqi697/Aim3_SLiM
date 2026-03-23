@@ -62,14 +62,12 @@ defineConstant("START_GEN", sim.cycle);
 reproduction() {
 if (!exists("START_GEN")) return;
 parents = sample(p2.individuals, 2, replace=F);
-// create offspring
-offspring = p2.addCrossed(parents[0], parents[1]);
-for (i in 1:(K_Bottle - 1)) {
+offspring = NULL;
+for (i in 0:(K_Bottle - 1)) {
 offspring = c(offspring, p2.addCrossed(parents[0], parents[1]));
 }
-// kill previous generation
-inds = p2.individuals;
-inds[!(inds %in% offspring)].fitnessScaling = 0.0;
+// kill all previous individuals
+sim.killIndividuals(setDifference(p2.individuals, offspring));
 }
 
 // Recombination
