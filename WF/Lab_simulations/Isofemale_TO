@@ -40,10 +40,10 @@ initializeMutationRate(0.0);   // no other mutations
 initializeRecombinationRate(Rec_rate);
 }
 
-
+1 late() {
 // Population with inversion frequency ~0.18
 sim.addSubpop("p1", 100);
-p = 0.18;
+p = 0.18; // Each chromosome has 18% chance carrying the inversion
 for (ind in p1.individuals) {
     if (runif(1) < p) {
         ind.haploidGenome1.addNewMutation(m3, 0.0, Inv_marker);
