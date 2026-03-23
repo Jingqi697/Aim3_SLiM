@@ -59,15 +59,21 @@ p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
 }
 
-reproduction() {
-if (!exists("START_GEN")) return;
-parents = sample(p2.individuals, 2, replace=F);
-offspring = NULL;
-for (i in 0:(K_Bottle - 1)) {
-offspring = c(offspring, p2.addCrossed(parents[0], parents[1]));
-}
-// kill all previous individuals
-sim.killIndividuals(setDifference(p2.individuals, offspring));
+early() {
+    if (!exists("START_GEN")) return;
+
+    gensSinceStart = sim.cycle - START_GEN;
+
+    if (gensSinceStart >= 0 & gensSinceStart <= NUM_GEN) {
+
+        if (sim.cycle % 2 == 0) {
+            // bottleneck to 2 individuals
+            p2.setSubpopulationSize(2);
+        } else {
+            // expand back to 50
+            p2.setSubpopulationSize(K_Bottle);
+        }
+    }
 }
 
 // Recombination
