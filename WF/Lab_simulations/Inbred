@@ -6,9 +6,9 @@ defineConstant("BASE_DIR", "/scratch/cqh6wn/");
 if (!exists("jobID")) defineConstant("jobID", 1);
 setSeed(getSeed() + jobID);
 defineConstant("REP_ID", jobID);
-defineConstant("OUTPUT_FILE", BASE_DIR + "results/inbred_results_rep" + REP_ID + ".csv");
+defineConstant("OUTPUT_FILE", BASE_DIR + "results/cage_results_rep" + REP_ID + ".csv");
 // Cage parameters
-defineConstant("K_Bottle", 50);
+// defineConstant("K_Bottle", 2);
 defineConstant("NUM_GEN", 20);
 defineConstant("N_FOUNDERS", 2);
 // Chromosome parameters
@@ -43,7 +43,8 @@ initializeRecombinationRate(Rec_rate);
 // 
 1 late() {
 sim.readFromPopulationFile("");
-founders = sample(p1.individuals, N_FOUNDERS);
+HET = p1.individuals[p1.individuals.countOfMutationsOfType(m3) == 1];
+founders = sample(HET, N_FOUNDERS);
 sim.addSubpop("p2", N_FOUNDERS); 
 // p2 = bottle
 for (i in 0:(N_FOUNDERS - 1)) {
@@ -57,23 +58,6 @@ p2.individuals[i].haploidGenome2.addMutations(template.haploidGenome2.mutations)
 sim.recalculateFitness();
 p1.setSubpopulationSize(0);
 defineConstant("START_GEN", sim.cycle);
-}
-
-early() {
-    if (!exists("START_GEN")) return;
-
-    gensSinceStart = sim.cycle - START_GEN;
-
-    if (gensSinceStart >= 0 & gensSinceStart <= NUM_GEN) {
-
-        if (sim.cycle % 2 == 0) {
-            // bottleneck to 2 individuals
-            p2.setSubpopulationSize(2);
-        } else {
-            // expand back to 50
-            p2.setSubpopulationSize(K_Bottle);
-        }
-    }
 }
 
 // Recombination
