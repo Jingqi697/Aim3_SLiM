@@ -54,6 +54,7 @@ for (ind in p1.individuals) {
     }
 }
 founders = sample(p1.individuals, N_FOUNDERS);
+sim.addSubpop("p2", N_FOUNDERS); 
 // p2 = bottle
 for (i in 0:(N_FOUNDERS - 1)) {
 template = founders[i];
