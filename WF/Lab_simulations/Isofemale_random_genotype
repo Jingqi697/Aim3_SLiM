@@ -100,7 +100,8 @@ if (gensSinceStart < 0) return;
 if (gensSinceStart > NUM_GEN) return;
 n = p2.individualCount;
 if (n > 0) {
-sample_size = 10
+target_sample = 10;
+sample_size = min(n, target_sample);
 samples = sample(p2.individuals, sample_size);
 m3_counts = samples.countOfMutationsOfType(m3);
 f_std = sum(m3_counts == 0) / sample_size;
