@@ -100,13 +100,14 @@ if (gensSinceStart < 0) return;
 if (gensSinceStart > NUM_GEN) return;
 n = p2.individualCount;
 if (n > 0) {
-samples = sample(p2.individuals, 10);
+sample_size = 10
+samples = sample(p2.individuals, sample_size);
 m3_counts = samples.countOfMutationsOfType(m3);
-f_std = sum(m3_counts == 0) / n;
-f_het = sum(m3_counts == 1) / n;
-f_inv = sum(m3_counts == 2) / n;
-inv_freq = sum(m3_counts) / (2.0 * n);
-line = REP_ID + "," + gensSinceStart + "," + n + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
+f_std = sum(m3_counts == 0) / sample_size;
+f_het = sum(m3_counts == 1) / sample_size;
+f_inv = sum(m3_counts == 2) / sample_size;
+inv_freq = sum(m3_counts) / (2.0 * sample_size);
+line = REP_ID + "," + gensSinceStart + "," + sample_size + "," + inv_freq + "," + f_std + "," + f_het + "," + f_inv;
 writeFile(OUTPUT_FILE, line, append=T);
 // Log gen0
 if (gensSinceStart == 0) {
